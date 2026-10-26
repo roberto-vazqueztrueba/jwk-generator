@@ -43,12 +43,11 @@ app.get('/.well-known/jwks', (req, res) => {
 
 // Endpoint 3: Solo endpoint de prueba de deployment
 app.get('/test', (req, res) => {
+  res.status(200);
   res.set('Content-Type', 'application/jwk-set+json');
   res.set('Cache-Control', 'public, max-age=3600');
-  res.json({
-    message: 'Todo recibido OK'
-  });
-  res.status(200);
+  res.json({ message: 'Todo recibido OK' });
+  // NADA después de res.json()
 });
 
 const PORT = process.env.PORT || 3000;
