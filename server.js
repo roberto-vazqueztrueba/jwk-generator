@@ -25,7 +25,7 @@ app.post('/generate-jwt', async (req, res) => {
 });
 
 // Endpoint 2: Exponer JWKS (ruta estándar)
-app.get('/.well-known/jwks.json', (req, res) => {
+app.get('/.well-known/jwks', (req, res) => {
   const publicJwk = JSON.parse(process.env.JWT_PUBLIC_JWK);
   res.set('Content-Type', 'application/jwk-set+json');
   res.set('Cache-Control', 'public, max-age=3600');
@@ -39,6 +39,16 @@ app.get('/.well-known/jwks.json', (req, res) => {
       e: publicJwk.e,
     }],
   });
+});
+
+// Endpoint 3: Solo endpoint de prueba de deployment
+app.get('/test', (req, res) => {
+  res.set('Content-Type', 'application/jwk-set+json');
+  res.set('Cache-Control', 'public, max-age=3600');
+  res.json({
+    message: 'Todo recibido OK'
+  });
+  res.status(200);
 });
 
 const PORT = process.env.PORT || 3000;
