@@ -63,7 +63,7 @@ app.post('/generate-assertion', (req, res) => {
 // Endpoint 1: Generar JWT Assertion para obtener token para TC
 app.post('/generate-assertion-tc', (req, res) => {
   try {
-    const { iss, sub, aud, jti } = req.body;
+    const { iss, sub, aud, scope, jti } = req.body;
     // Validación de parámetros y configuración
     if (!iss || !sub || !aud || !scope || !jti) {
       return res.status(400).json({
