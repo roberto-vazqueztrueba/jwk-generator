@@ -18,11 +18,11 @@ const KEY_ID = process.env.KEY_ID;
 // Endpoint 1: Generar JWT Assertion
 app.post('/generate-assertion', (req, res) => {
   try {
-    const { iss, sub, aud } = req.body;
+    const { iss, sub, aud, jti } = req.body;
     // Validación de parámetros y configuración
-    if (!iss || !sub || !aud) {
+    if (!iss || !sub || !aud || !jti) {
       return res.status(400).json({
-        error: 'Faltan parámetros requeridos: iss, sub, aud.'
+        error: 'Faltan parámetros requeridos: iss, sub, aud, jti.'
       });
     }
     if (!PRIVATE_KEY || !KEY_ID) {
@@ -37,7 +37,7 @@ app.post('/generate-assertion', (req, res) => {
     // Vida útil máxima recomendada por CAMARA: 300 segundos
     const exp = now + 250;
     
-    const payload = { iss, sub, aud, iat, exp };
+    const payload = { iss, sub, aud, iat, exp, jti };
     const token = jwt.sign(payload, PRIVATE_KEY, {
       algorithm: 'RS256',
       keyid: KEY_ID
