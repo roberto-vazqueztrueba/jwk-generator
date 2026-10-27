@@ -4,23 +4,49 @@ import { SignJWT, importPKCS8 } from 'jose';
 const app = express();
 app.use(express.json());
 
-// Endpoint 1: Generar JWT
-app.post('/generate-jwt', async (req, res) => {
+const jwt = require('jsonwebtoken');
+
+
+// Variables de entorno (configuradas en Render)
+// PRIVATE_KEY: clave privada PEM (con \n escapados o reales)
+// KEY_ID: identificador de la clave (kid) que espera el servidor de autorización
+const PRIVATE_KEY = process.env.PRIVATE_KEY
+  ? process.env.PRIVATE_KEY.replace(/\\n/g, '\n')
+  : null;
+const KEY_ID = process.env.KEY_ID;
+
+
+// Endpoint 1: Generar JWT Assertion
+app.post('/generate-assertion', (req, res) => {
   try {
-    const { sub, role, ...customClaims } = req.body;
-    if (!sub) return res.status(400).json({ error: 'Missing sub' });
+    const { iss, sub, aud } = req.body;
+    // Validación de parámetros y configuración
+    if (!iss || !sub || !aud) {
+      return res.status(400).json({
+        error: 'Faltan parámetros requeridos: iss, sub, aud.'
+      });
+    }
+    if (!PRIVATE_KEY || !KEY_ID) {
+      return res.status(500).json({
+        error: 'Configuración incompleta: faltan PRIVATE_KEY o KEY_ID en las variables de entorno.'
+      });
+    }
 
-    const privateKey = await importPKCS8(process.env.JWT_PRIVATE_KEY, 'RS256');
-    const jwt = await new SignJWT({ sub, role, ...customClaims })
-      .setProtectedHeader({ alg: 'RS256', kid: 'mi-clave-001' })
-      .setIssuedAt()
-      .setExpirationTime('1h')
-      .sign(privateKey);
-
-    res.json({ token: jwt });
+    // Timestamps calculados en el momento de la generación
+    const now = Math.floor(Date.now() / 1000);
+    const iat = now;
+    // Vida útil máxima recomendada por CAMARA: 300 segundos
+    const exp = now + 250;
+    
+    const payload = { iss, sub, aud, iat, exp };
+    const token = jwt.sign(payload, PRIVATE_KEY, {
+      algorithm: 'RS256',
+      keyid: KEY_ID
+    });
+    res.json({ client_assertion: token });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Signing failed' });
+    console.error('Error generando JWT:', error);
+    res.status(500).json({ error: 'Error interno al generar el JWT.' });
   }
 });
 
