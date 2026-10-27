@@ -26,7 +26,7 @@ app.post('/generate-jwt', async (req, res) => {
 
 
 // Endpoint 2: Exponer JWKS (ruta estándar)
-app.get('/.well-known/jwk', (req, res) => {
+app.get('/.well-known/jwks', (req, res) => {
   try {
     const raw = process.env.JWT_PUBLIC_JWK;
     if (!raw) {
