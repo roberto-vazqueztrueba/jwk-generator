@@ -1,10 +1,9 @@
 import express from 'express';
+import jwt from 'jsonwebtoken';
 import { SignJWT, importPKCS8 } from 'jose';
 
 const app = express();
 app.use(express.json());
-
-const jwt = require('jsonwebtoken');
 
 
 // Variables de entorno (configuradas en Render)
