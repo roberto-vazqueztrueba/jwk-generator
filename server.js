@@ -24,22 +24,34 @@ app.post('/generate-jwt', async (req, res) => {
   }
 });
 
+
 // Endpoint 2: Exponer JWKS (ruta estándar)
-app.get('/.well-known/jwks', (req, res) => {
-  const publicJwk = JSON.parse(process.env.JWT_PUBLIC_JWK);
-  res.set('Content-Type', 'application/jwk-set+json');
-  res.set('Cache-Control', 'public, max-age=3600');
-  res.json({
-    keys: [{
-      kty: publicJwk.kty,
-      use: 'sig',
-      kid: 'mi-clave-001',
-      alg: 'RS256',
-      n: publicJwk.n,
-      e: publicJwk.e,
-    }],
-  });
+app.get('/.well-known/jwk', (req, res) => {
+  try {
+    const raw = process.env.JWT_PUBLIC_JWK;
+    if (!raw) {
+      console.error('JWT_PUBLIC_JWK no está definida');
+      return res.status(500).json({ error: 'JWKS no configurado' });
+    }
+
+    // Parseamos para validar que el JSON es correcto
+    const jwks = JSON.parse(raw);
+
+    // Validación mínima: debe tener un array "keys"
+    if (!jwks || !Array.isArray(jwks.keys) || jwks.keys.length === 0) {
+      console.error('JWT_PUBLIC_JWK no contiene un array "keys" válido');
+      return res.status(500).json({ error: 'JWKS inválido' });
+    }
+
+    res.set('Content-Type', 'application/jwk-set+json');
+    res.set('Cache-Control', 'public, max-age=3600');
+    return res.status(200).json(jwks);
+  } catch (err) {
+    console.error('Error generando JWKS:', err);
+    return res.status(500).json({ error: 'JWKS inválido' });
+  }
 });
+
 
 // Endpoint 3: Solo endpoint de prueba de deployment
 app.get('/test', (req, res) => {
