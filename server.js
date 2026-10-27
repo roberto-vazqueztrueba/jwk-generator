@@ -15,7 +15,17 @@ const PRIVATE_KEY = process.env.PRIVATE_KEY
 const KEY_ID = process.env.KEY_ID;
 
 
-// Endpoint 1: Generar JWT Assertion
+// Endpoint test: Solo endpoint de prueba de deployment
+app.get('/test', (req, res) => {
+  res.status(200);
+  res.set('Content-Type', 'application/jwk-set+json');
+  res.set('Cache-Control', 'public, max-age=3600');
+  res.json({ message: 'Todo recibido OK' });
+  // NADA después de res.json()
+});
+
+
+// Endpoint 1: Generar JWT Assertion para autenticación de client_id
 app.post('/generate-assertion', (req, res) => {
   try {
     const { iss, sub, aud, jti } = req.body;
@@ -50,7 +60,42 @@ app.post('/generate-assertion', (req, res) => {
 });
 
 
-// Endpoint 2: Exponer JWKS (ruta estándar)
+// Endpoint 1: Generar JWT Assertion para obtener token para TC
+app.post('/generate-assertion-tc', (req, res) => {
+  try {
+    const { iss, sub, aud, jti } = req.body;
+    // Validación de parámetros y configuración
+    if (!iss || !sub || !aud || !scope || !jti) {
+      return res.status(400).json({
+        error: 'Faltan parámetros requeridos: iss, sub, aud, scope, jti.'
+      });
+    }
+    if (!PRIVATE_KEY || !KEY_ID) {
+      return res.status(500).json({
+        error: 'Configuración incompleta: faltan PRIVATE_KEY o KEY_ID en las variables de entorno.'
+      });
+    }
+
+    // Timestamps calculados en el momento de la generación
+    const now = Math.floor(Date.now() / 1000);
+    const iat = now;
+    // Vida útil máxima recomendada por CAMARA: 300 segundos
+    const exp = now + 250;
+    
+    const payload = { iss, sub, aud, scope, iat, exp, jti };
+    const token = jwt.sign(payload, PRIVATE_KEY, {
+      algorithm: 'RS256',
+      keyid: KEY_ID
+    });
+    res.json({ client_assertion: token });
+  } catch (error) {
+    console.error('Error generando JWT:', error);
+    res.status(500).json({ error: 'Error interno al generar el JWT.' });
+  }
+});
+
+
+// Endpoint 3: Exponer JWKS (ruta estándar)
 app.get('/.well-known/jwks', (req, res) => {
   try {
     const raw = process.env.JWT_PUBLIC_JWK;
@@ -77,15 +122,6 @@ app.get('/.well-known/jwks', (req, res) => {
   }
 });
 
-
-// Endpoint 3: Solo endpoint de prueba de deployment
-app.get('/test', (req, res) => {
-  res.status(200);
-  res.set('Content-Type', 'application/jwk-set+json');
-  res.set('Cache-Control', 'public, max-age=3600');
-  res.json({ message: 'Todo recibido OK' });
-  // NADA después de res.json()
-});
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
